@@ -1,0 +1,16 @@
+/home/morgan-jensen/compilers6820/compiler/bin/Debug/net5.0/compiler
+/home/morgan-jensen/compilers6820/compiler/bin/Debug/net5.0/compiler.deps.json
+/home/morgan-jensen/compilers6820/compiler/bin/Debug/net5.0/compiler.runtimeconfig.json
+/home/morgan-jensen/compilers6820/compiler/bin/Debug/net5.0/compiler.runtimeconfig.dev.json
+/home/morgan-jensen/compilers6820/compiler/bin/Debug/net5.0/compiler.dll
+/home/morgan-jensen/compilers6820/compiler/bin/Debug/net5.0/ref/compiler.dll
+/home/morgan-jensen/compilers6820/compiler/bin/Debug/net5.0/compiler.pdb
+/home/morgan-jensen/compilers6820/compiler/obj/Debug/net5.0/compiler.csproj.AssemblyReference.cache
+/home/morgan-jensen/compilers6820/compiler/obj/Debug/net5.0/compiler.GeneratedMSBuildEditorConfig.editorconfig
+/home/morgan-jensen/compilers6820/compiler/obj/Debug/net5.0/compiler.AssemblyInfoInputs.cache
+/home/morgan-jensen/compilers6820/compiler/obj/Debug/net5.0/compiler.AssemblyInfo.cs
+/home/morgan-jensen/compilers6820/compiler/obj/Debug/net5.0/compiler.csproj.CoreCompileInputs.cache
+/home/morgan-jensen/compilers6820/compiler/obj/Debug/net5.0/compiler.dll
+/home/morgan-jensen/compilers6820/compiler/obj/Debug/net5.0/ref/compiler.dll
+/home/morgan-jensen/compilers6820/compiler/obj/Debug/net5.0/compiler.pdb
+/home/morgan-jensen/compilers6820/compiler/obj/Debug/net5.0/compiler.genruntimeconfig.cache
