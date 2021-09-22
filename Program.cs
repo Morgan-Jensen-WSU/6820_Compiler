@@ -18,9 +18,7 @@ namespace compiler
 
             InputFile = args[0];
             ProgramName = "temp";
-
-
-
+            
             CreateOutput();
         }
 
