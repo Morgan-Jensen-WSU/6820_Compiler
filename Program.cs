@@ -5,6 +5,9 @@ namespace compiler
 {
     class Program
     {
+
+        private static Parser MyParser;
+
         private static String InputFile { get; set; }
         private static String ProgramName { get; set; }
 
@@ -14,12 +17,16 @@ namespace compiler
             {
                 Console.WriteLine("No params given");
                 // throw error
+                return;
             }
 
             InputFile = args[0];
-            ProgramName = "temp";
+            ProgramName = "temp"; // remove before taking input
             
+            MyParser = new Parser(InputFile);
+
             CreateOutput();
+
         }
 
         /// <summary>
