@@ -1,52 +1,62 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace compiler
 {
     public class Parser
     {
-        private List<string> Words = new List<string>();
+        private List<char> Input = new List<char>();
 
         public Parser(string inputFile)
         {
-            // get text into Words
-            string[] lines = System.IO.File.ReadAllLines(inputFile);
-
-            foreach (var line in lines)
+            // get text into Input
+            StreamReader reader = new StreamReader(inputFile);
+            do
             {
-                string[] words = line.Split(" ");
-                foreach (var word in words)
-                {
-                    Words.Add(word);
-                }
+                Input.Add((char)reader.Read());
+            } while (!reader.EndOfStream);
+            reader.Close();
+            reader.Dispose();
+
+            FilterComments();
+            foreach (var thing in Input)
+            {
+                Console.Write(thing);
             }
+
 
         }
 
         private void FilterComments()
         {
-            for (int i = 0; i < Words.Count; i++)
+            for (int i = 0; i < Input.Count; i++)
             {
-                if (Words[i].Contains("//"))
+                if (Input[i] == '/')
                 {
-                    int iter = i;
-                    while (Words[iter] != "\n" || Words[iter] == "\r") // this doesnt work
+                    if (Input[i + 1] == '/')
                     {
-                        iter++;
+                        int iter = i;
+                        while (Input[iter] != '\n')
+                        {
+                            iter++;
+                        }
+                        Input.RemoveRange(i, iter - i);
                     }
-                    Words.RemoveRange(i, iter - i);
-                    i = iter;
-                }
-
-                if (Words[i].Contains("/*"))
-                {
-                    int iter = i;
-                    while (Words[iter] != "*/")
+                    else if (Input[i + 1] == '*')
                     {
-                        iter++;
+                        int iter = i + 2; // jump past the *
+                        while (true)
+                        {
+                            iter++;
+                            if (Input[iter] == '*' && Input[iter + 1] == '/')
+                            {
+                                iter += 2; // jump past the '*/'
+                                break;
+                            }
+                        }
+                        Input.RemoveRange(i, iter - i);
                     }
-                    Words.RemoveRange(i, iter - i);
-                    i = iter;
                 }
             }
         }
