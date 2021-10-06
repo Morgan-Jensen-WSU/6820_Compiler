@@ -1,4 +1,4 @@
-using System;
+using System.Text;
 using System.Collections.Generic;
 using System.IO;
 
@@ -7,6 +7,7 @@ namespace compiler
     public class Parser
     {
         private List<char> Input = new List<char>();
+        private List<Variable<object>> Variables = new List<Variable<object>>();
 
         public Parser(string inputFile)
         {
@@ -20,10 +21,7 @@ namespace compiler
             reader.Dispose();
 
             FilterComments();
-            foreach (var thing in Input)
-            {
-                Console.Write(thing);
-            }
+            Parse();
 
 
         }
@@ -58,6 +56,35 @@ namespace compiler
                         Input.RemoveRange(i, iter - i);
                     }
                 }
+            }
+        }
+
+        private void Parse()
+        {
+            for (int i = 0; i < Input.Count; i++)
+            {
+                // finding a declared num variable
+                if (Input[i] == 'n')
+                {
+                    CheckForNumDeclared(i);
+                }
+            }
+        }
+
+        private void CheckForNumDeclared(int index)
+        {
+            // check for "num" 
+            StringBuilder stringBuilder = new StringBuilder();
+            int iter = index;
+
+            while (Input[iter] != ' ')
+            {
+                stringBuilder.Append(Input[iter]);
+            }
+
+            if (stringBuilder.ToString() == "num")
+            {
+                // get var name
             }
         }
     }
