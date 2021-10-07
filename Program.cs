@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace compiler
 {
@@ -7,7 +8,6 @@ namespace compiler
     {
 
         private static Parser MyParser;
-
         private static String InputFile { get; set; }
         private static String ProgramName { get; set; }
 
@@ -46,6 +46,20 @@ namespace compiler
 
             File.Create($"output/{ProgramName}.asm");
             File.Create($"output/{ProgramName}.err");
+        }
+
+        /// <summary>
+        /// Writes error message to /ProgramName/.err
+        /// Terminates the program
+        /// </summary>
+        /// <param name="errorMessage">Message to be displayed to user.</param> 
+        public static void ThrowError(string errorMessage)
+        {
+            using (StreamWriter writer = new StreamWriter($"input/{ProgramName}.err"))
+            {
+                writer.WriteLine($"Error: {errorMessage}");
+            }
+            System.Environment.Exit(1);
         }
     }
 }
