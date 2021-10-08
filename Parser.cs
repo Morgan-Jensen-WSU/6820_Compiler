@@ -1,196 +1,134 @@
-using System.Text;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System;
+using System.Text;
+using System.Text.RegularExpressions;
 
-namespace compiler
 {
-    public class Parser
-    {
-        private List<char> Input = new List<char>();
-        private List<IVariable> Variables = new List<IVariable>();
-        
-        private static string[] SymbolTable = { "num" };
+    
+}
+public class Parser
+{
+    private List<char> Input = new List<char>();
+    private SymbolTable MyTable;
 
-        public Parser(string inputFile)
+    private Regex DeclareNum = new Regex(@"^num [a-zA-Z0-9]$", RegexOptions.IgnorePatternWhitespace);
+    private Regex DeclareAndAssignNum = new Regex(@"^num [a-zA-Z0-9]+ \= [0-9]+$", RegexOptions.IgnorePatternWhitespace);
+    private Regex DeclaredAndAssignAdd = new Regex(@"^num [a-zA-Z0-9]+ \= [a-zA-Z0-9}+ \+ [0-9]+", RegexOptions.IgnorePatternWhitespace);
+
+    public Parser(string inputFile)
+    {
+        MyTable = new SymbolTable();
+
+        using (StreamReader reader = new StreamReader(inputFile))
         {
-            // get text into Input
-            StreamReader reader = new StreamReader(inputFile);
             do
             {
                 Input.Add((char)reader.Read());
-            } while (!reader.EndOfStream);
-            reader.Close();
-            reader.Dispose();
-
-            FilterComments();
-            Parse();
-
-
-        }
-
-        private void FilterComments()
-        {
-            for (int i = 0; i < Input.Count; i++)
-            {
-                if (Input[i] == '/')
-                {
-                    if (Input[i + 1] == '/')
-                    {
-                        int iter = i;
-                        while (Input[iter] != '\n')
-                        {
-                            iter++;
-                        }
-                        Input.RemoveRange(i, iter - i);
-                    }
-                    else if (Input[i + 1] == '*')
-                    {
-                        int iter = i + 2; // jump past the *
-                        while (true)
-                        {
-                            iter++;
-                            if (Input[iter] == '*' && Input[iter + 1] == '/')
-                            {
-                                iter += 2; // jump past the '*/'
-                                break;
-                            }
-                        }
-                        Input.RemoveRange(i, iter - i);
-                    }
-                }
             }
+            while (!reader.EndOfStream);
         }
 
-        /// <summary>
-        /// Runs through Input until it finds end.
-        /// Parses out different words
-        /// </summary>
-        private void Parse()
+        FilterComments();
+    }
+
+    public void Parse()
+    {
+        int iter = 0; // pointer to current character
+        StringBuilder builder = new StringBuilder();
+
+        while (builder.ToString() != "end.")
         {
-            int index = 0;
-            StringBuilder stringBuilder = new StringBuilder();
-            
-            while (stringBuilder.ToString() != "end.")
+            // get 1 line
+            while (Input[iter] != ';')
             {
-                int iter = index;     
+                builder.Append(Input[iter]);
+                iter++;
+            }
 
-                stringBuilder.Clear();
-                SkipWhiteSpace(ref iter);
+            string line = builder.ToString();
 
-                // feed chars into stringBuilder until end of word (' ', ';', or new line is found)
-                while(Input[iter] != ' ' || Input[iter] != ';' || Input[iter] == '\n')
+            // num num1;
+            if (DeclareNum.IsMatch(line))
+            {
+                string[] words = line.Split(' ');
+                
+                CheckAndDeclareVariable(words[0], words[1]);
+            }
+            // num num1 = 5;
+            else if (DeclareAndAssignNum.IsMatch(line))
+            {
+                string[] words = line.Split(' ');
+                
+                CheckAndDeclareVariable(words[0], words[1]);
+                CheckAndAssignVariable(words[1], words[3]);
+            }
+            // num num1 = num 2 + 5;
+            else if (DeclaredAndAssignAdd.IsMatch(line))
+            {
+                string[] words = line.Split(' ');                
+            }
+
+        }
+    }
+
+    private void CheckAndDeclareVariable(string type, string name)
+    {
+        if (MyTable.IsVarType(type))
+        {
+            if (!MyTable.IsVariableNameUsed(name)) MyTable.DeclareVariable(name);
+            else Error.ThrowError($"{name} is already declared.");
+        }
+        else
+        {
+            Error.ThrowError($"{type} is not a valid variable type.");
+        }
+    }
+
+    private void CheckAndAssignVariable(string name, string value)
+    {
+        if (MyTable.IsVariableNameUsed(name))
+        {
+            MyTable.SetVariable(name, Int32.Parse(value));
+        }
+        else 
+        {
+            Error.ThrowError($"Need to declare {name} before assigning it.");
+        }
+    }
+
+    /// <summary>
+    /// Parses through file and removes all comments
+    /// </summary>
+    private void FilterComments()
+    {
+        for (int i = 0; i < Input.Count; i++)
+        {
+            if (Input[i] == '/')
+            {
+                if (Input[i + 1] == '/')
                 {
-                    stringBuilder.Append(Input[iter]);
-                    iter++;
-                }
-
-                // declaring variables
-                if (SymbolTable.Contains(stringBuilder.ToString()))
-                {
-                    while (Input[iter] != ';')
+                    int iter = i;
+                    while (Input[iter] != '\n')
                     {
-                        stringBuilder.Append(Input[iter]);
                         iter++;
                     }
-
-                    // num num1 = 5
-                    string[] words = stringBuilder.ToString().Split(' ');
-
-                    DeclareVariable(words[1], words[0]);
-
-                    if (words[2] == "=")
-                    {
-                        AssignVariable(words[1], words[3]);
-                    }
+                    Input.RemoveRange(i, iter - i);
                 }
-
-                // jump past white space
-                SkipWhiteSpace(ref iter);
-            }
-        }
-
-        /// <summary>
-        /// Verifies validity of declared variable
-        /// If valid, creates new variable and adds it to Variables list
-        /// </summary>
-        /// <param name="name">Name of variable to be set.</param>
-        /// <param name="declareType">Type of variable to be set.</param>
-        private void DeclareVariable(string declaredType, string name)
-        {
-            // throw error if they use a var type for a name
-            if (SymbolTable.Contains(name))
-            {
-                Program.ThrowError("Variable cannot share a name with a variable type.");
-                return;
-            }
-
-            // throw error if they already used that name
-            if (IsVarNameUsed(name))
-            {
-                Program.ThrowError("A variable already exists with that name.");
-                return;
-            }
-
-            switch (declaredType)
-            {
-                case "num":
-                    Variables.Add(new Variable<int>(name));
-                    break;
-                case null:
-                    Program.ThrowError("Variable must have a name");
-                    return;
-            }
-        }
-
-        public void AssignVariable(string name, string value)
-        {
-            
-        }
-
-        /// <summary>
-        /// Checks to see if user is assigning at declaration time.
-        /// </summary>
-        /// <param name="currentIter">The current location in Input.</param>
-        /// <returns>True if user is assigning at declaration, False otherwise.</returns>
-        public bool IsAssigning(ref int currentIter)
-        {
-            
-            // filter out white spaces in case = is father down
-            SkipWhiteSpace(ref currentIter);
-            bool isAssigning = Input[currentIter] == '=';
-            ++currentIter;
-            return isAssigning;
-        }
-
-        /// <summary>
-        /// Checks to see if variable name has already been used
-        /// </summary>
-        /// <param name="name">Name of the variable to be used.</param>
-        /// <returns>True if name used, False if not.</returns>
-        private bool IsVarNameUsed(string name)
-        {
-            foreach (var variable in Variables)
-            {
-                if (variable.Name == name)
+                else if (Input[i + 1] == '*')
                 {
-                    return true;
+                    int iter = i + 2; // jump past the *
+                    while (true)
+                    {
+                        iter++;
+                        if (Input[iter] == '*' && Input[iter + 1] == '/')
+                        {
+                            iter += 2; // jump past the '*/'
+                            break;
+                        }
+                    }
+                    Input.RemoveRange(i, iter - i);
                 }
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Advances pointer iter to the next non-whitespace character.
-        /// </summary>
-        /// <param name="iter">Index to start at.</param>
-        /// <returns>Location of next non-whitespace character.</returns>
-        private void SkipWhiteSpace(ref int iter)
-        {
-            while (Input[iter] == ' ' || Input[iter] == '\n')
-            {
-                iter++;
             }
         }
     }
