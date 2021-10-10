@@ -1,133 +1,152 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System;
 using System.Text;
 using System.Text.RegularExpressions;
 
+namespace compiler
 {
-    
-}
-public class Parser
-{
-    private List<char> Input = new List<char>();
-    private SymbolTable MyTable;
-
-    private Regex DeclareNum = new Regex(@"^num [a-zA-Z0-9]$", RegexOptions.IgnorePatternWhitespace);
-    private Regex DeclareAndAssignNum = new Regex(@"^num [a-zA-Z0-9]+ \= [0-9]+$", RegexOptions.IgnorePatternWhitespace);
-    private Regex DeclaredAndAssignAdd = new Regex(@"^num [a-zA-Z0-9]+ \= [a-zA-Z0-9}+ \+ [0-9]+", RegexOptions.IgnorePatternWhitespace);
-
-    public Parser(string inputFile)
+    public class Parser
     {
-        MyTable = new SymbolTable();
+        private List<char> Input = new List<char>();
+        private SymbolTable MyTable;
 
-        using (StreamReader reader = new StreamReader(inputFile))
+        private List<string> Lines = new List<string>();
+
+        Regex ProgramName = new Regex(@"^program[a-zA-Z0-9]+");
+        Regex DeclareNum = new Regex(@"^num[a-zA-Z0-9]+");
+        Regex AssignNum = new Regex(@"^[a-zA-Z0-9]+=[a-zA-Z0-9]+");
+        Regex NumConst = new Regex(@"^[0-9]+$");
+        Regex Addition = new Regex(@"^[a-zA-Z0-9]+\+");
+
+
+        public Parser(string inputFile)
         {
-            do
+            MyTable = new SymbolTable();
+
+            using (StreamReader reader = new StreamReader(inputFile))
             {
-                Input.Add((char)reader.Read());
-            }
-            while (!reader.EndOfStream);
-        }
-
-        FilterComments();
-    }
-
-    public void Parse()
-    {
-        int iter = 0; // pointer to current character
-        StringBuilder builder = new StringBuilder();
-
-        while (builder.ToString() != "end.")
-        {
-            // get 1 line
-            while (Input[iter] != ';')
-            {
-                builder.Append(Input[iter]);
-                iter++;
-            }
-
-            string line = builder.ToString();
-
-            // num num1;
-            if (DeclareNum.IsMatch(line))
-            {
-                string[] words = line.Split(' ');
-                
-                CheckAndDeclareVariable(words[0], words[1]);
-            }
-            // num num1 = 5;
-            else if (DeclareAndAssignNum.IsMatch(line))
-            {
-                string[] words = line.Split(' ');
-                
-                CheckAndDeclareVariable(words[0], words[1]);
-                CheckAndAssignVariable(words[1], words[3]);
-            }
-            // num num1 = num 2 + 5;
-            else if (DeclaredAndAssignAdd.IsMatch(line))
-            {
-                string[] words = line.Split(' ');                
-            }
-
-        }
-    }
-
-    private void CheckAndDeclareVariable(string type, string name)
-    {
-        if (MyTable.IsVarType(type))
-        {
-            if (!MyTable.IsVariableNameUsed(name)) MyTable.DeclareVariable(name);
-            else Error.ThrowError($"{name} is already declared.");
-        }
-        else
-        {
-            Error.ThrowError($"{type} is not a valid variable type.");
-        }
-    }
-
-    private void CheckAndAssignVariable(string name, string value)
-    {
-        if (MyTable.IsVariableNameUsed(name))
-        {
-            MyTable.SetVariable(name, Int32.Parse(value));
-        }
-        else 
-        {
-            Error.ThrowError($"Need to declare {name} before assigning it.");
-        }
-    }
-
-    /// <summary>
-    /// Parses through file and removes all comments
-    /// </summary>
-    private void FilterComments()
-    {
-        for (int i = 0; i < Input.Count; i++)
-        {
-            if (Input[i] == '/')
-            {
-                if (Input[i + 1] == '/')
+                do
                 {
-                    int iter = i;
-                    while (Input[iter] != '\n')
-                    {
-                        iter++;
-                    }
-                    Input.RemoveRange(i, iter - i);
+                    Input.Add((char)reader.Read());
                 }
-                else if (Input[i + 1] == '*')
+                while (!reader.EndOfStream);
+            }
+
+            FilterComments();
+        }
+
+        public void Parse()
+        {
+            int iter = 0; // pointer to current character
+            StringBuilder builder = new StringBuilder();
+
+            while (true)
+            {
+                // get 1 line without white space 
+                while (Input[iter] != ';' && Input[iter] != '\n' && iter <= Input.Count - 1)
                 {
-                    int iter = i + 2; // jump past the *
-                    while (true)
+                    if (Input[iter] != ' ' && Input[iter] != '\t' && Input[iter] != '\n')
                     {
-                        iter++;
-                        if (Input[iter] == '*' && Input[iter + 1] == '/')
+                        builder.Append(Input[iter]);
+                    }
+                    iter++;
+                    if (iter == Input.Count) break;
+                }
+                iter++;
+                if (builder.ToString() != "") Lines.Add(builder.ToString());
+                if (builder.ToString() == "end.") break;
+                builder.Clear();
+            }
+
+            
+            foreach (var line in Lines)
+            {
+                if (ProgramName.IsMatch(line))
+                {
+                    Program.ProgramName = line.Substring(7);
+                }
+                else if (DeclareNum.IsMatch(line))
+                {
+                    string varName = line.Substring(3);
+                    if (MyTable.IsVariableNameUsed(varName))
+                    {
+                        Error.ThrowError("A variable already has that name.");
+                    }
+                    else 
+                    {
+                        if (!AssignNum.IsMatch(varName))    // num num1;
                         {
-                            iter += 2; // jump past the '*/'
-                            break;
+                            MyTable.DeclareVariable(varName);
+                            SymbolTable.BssSection.Add($"{varName}\tresq\t1\t; an int");
+                        }
+                        else
+                        {
+                            int equalsSign = 0;
+                            for (int i = 0; i < varName.Length; i++)
+                            {
+                                if (varName[i] == '=')
+                                {
+                                    equalsSign = i;
+                                }
+                            }
+
+                            string realVarName = varName.Substring(0, equalsSign);
+                            string assignValue = varName.Substring(equalsSign + 1);
+                            
+                            if (NumConst.IsMatch(assignValue))  // num num2 = 3;
+                            {
+                                MyTable.DeclareVariable(realVarName);
+                                MyTable.SetVariable(realVarName, assignValue);
+                                SymbolTable.DataSection.Add($"{realVarName}\tdd\t{assignValue}");
+                            }
+                            else
+                            {
+                                SymbolTable.BssSection.Add($"{realVarName}\tresq\t1\t; an int");
+                            }
+                            
                         }
                     }
-                    Input.RemoveRange(i, iter - i);
+                    
+                }
+
+                Console.WriteLine(line);
+            }
+        }
+
+
+        /// <summary>
+        /// Parses through file and removes all comments
+        /// </summary>
+        private void FilterComments()
+        {
+            for (int i = 0; i < Input.Count; i++)
+            {
+                if (Input[i] == '/')
+                {
+                    if (Input[i + 1] == '/')
+                    {
+                        int iter = i;
+                        while (Input[iter] != '\n')
+                        {
+                            iter++;
+                        }
+                        Input.RemoveRange(i, iter - i);
+                    }
+                    else if (Input[i + 1] == '*')
+                    {
+                        int iter = i + 2; // jump past the *
+                        while (true)
+                        {
+                            iter++;
+                            if (Input[iter] == '*' && Input[iter + 1] == '/')
+                            {
+                                iter += 2; // jump past the '*/'
+                                break;
+                            }
+                        }
+                        Input.RemoveRange(i, iter - i);
+                    }
                 }
             }
         }

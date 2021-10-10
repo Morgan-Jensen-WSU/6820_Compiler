@@ -153,14 +153,14 @@ namespace compiler
             // throw error if they use a var type for a name
             if (SymbolTable.Contains(name))
             {
-                Program.ThrowError("Variable cannot share a name with a variable type.");
+                Error.ThrowError("Variable cannot share a name with a variable type.");
                 return;
             }
 
             // throw error if they already used that name
             if (IsVarNameUsed(name))
             {
-                Program.ThrowError("A variable already exists with that name.");
+                Error.ThrowError("A variable already exists with that name.");
                 return;
             }
 
@@ -170,7 +170,7 @@ namespace compiler
                     Variables.Add(new IntVariable(name));
                     break;
                 case null:
-                    Program.ThrowError("Variable must have a name");
+                    Error.ThrowError("Variable must have a name");
                     return;
             }
         }
@@ -213,7 +213,7 @@ namespace compiler
 
             if (varToAssign == null)
             {
-                Program.ThrowError("Cannot assign a varaible before it is declared.");
+                Error.ThrowError("Cannot assign a varaible before it is declared.");
             }
 
             if (operators.Count == 0) // if just assigning something
