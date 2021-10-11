@@ -21,7 +21,7 @@ namespace compiler
                 return;
             }
 
-            InputFile = args[0]; 
+            InputFile = args[0];
 
             MyParser = new Parser(InputFile);
             MyParser.Parse();
@@ -29,18 +29,17 @@ namespace compiler
 
             Writer = new StreamWriter(OutputFile);
 
-            
+
             GetASMReady();
             PrintDataSection();
             PrintBssSection();
+            StartTextSection();
+            PrintTextSection();
+            PrintTermination();
 
 
             Writer.Close();
             Writer.Dispose();
-            foreach (var variable in SymbolTable.Variables)
-            {
-                Console.WriteLine($"{variable.Name}: {variable.Value}");
-            }
         }
 
         /// <summary>
@@ -79,7 +78,7 @@ namespace compiler
             Writer.WriteLine("extern printf");
             Writer.WriteLine("extern scanf");
             Writer.WriteLine("extern exit");
-            Writer.WriteLine("\n");            
+            Writer.WriteLine("\n");
         }
 
         private static void PrintDataSection()
@@ -89,6 +88,9 @@ namespace compiler
             Writer.WriteLine(";-----------------------------");
             Writer.WriteLine("section\t.data");
             Writer.WriteLine();
+            Writer.WriteLine("stringPrinter\tdb\t\"%s\",0");
+            Writer.WriteLine("numberPrinter\tdb\t\"%d\",0x0d,0x0a,0");
+            Writer.WriteLine("int_format\tdb\t\"%i\", 0");
             foreach (var line in SymbolTable.DataSection)
             {
                 Writer.WriteLine(line);
@@ -108,6 +110,62 @@ namespace compiler
                 Writer.WriteLine(line);
             }
             Writer.WriteLine("\n");
+        }
+
+        private static void StartTextSection()
+        {
+            Writer.WriteLine(";-----------------------------");
+            Writer.WriteLine("; Code");
+            Writer.WriteLine(";-----------------------------");
+            Writer.WriteLine("seciton\t.text");
+            Writer.WriteLine();
+            Writer.WriteLine("printInt:");
+            Writer.WriteLine("\tpush\trbp\t\t; Avoid stack alignment isses");
+            Writer.WriteLine("\tpush\trax\t\t; save rax and rcx");
+            Writer.WriteLine("\tpush\trcx");
+            Writer.WriteLine();
+            Writer.WriteLine("\tmov\trdi, numberPrinter\t\t; set printf format parameter");
+            Writer.WriteLine("\tmov\trsi, rax\t\t; set printf value parameter");
+            Writer.WriteLine("\txor\trax, rax\t\t; set rax to 0 (number of float/vector regs used is 0)");
+            Writer.WriteLine();
+            Writer.WriteLine("\tcall\t[rel printf wrt ..got]");
+            Writer.WriteLine("\tpop\trcx\t\t; restore rcx");
+            Writer.WriteLine("\tpop\trax\t\t; restore rax");
+            Writer.WriteLine("\tpop\trbp\t\t; avoid stack alignment issues");
+            Writer.WriteLine("\tret");
+            Writer.WriteLine();
+            Writer.WriteLine("printString:");
+            Writer.WriteLine("\tpush\trbp\t\t; Avoid stack alignment isses");
+            Writer.WriteLine("\tpush\trax\t\t; save rax and rcx");
+            Writer.WriteLine("\tpush\trcx");
+            Writer.WriteLine();
+            Writer.WriteLine("\tmov\trdi, stringPrinter\t\t; set printf format parameter");
+            Writer.WriteLine("\tmov\trsi, rax\t\t; set printf value parameter");
+            Writer.WriteLine("\txor\trax, rax\t\t; set rax to 0 (number of float/vector regs used is 0)");
+            Writer.WriteLine();
+            Writer.WriteLine("\tcall\t[rel printf wrt ..got]");
+            Writer.WriteLine("\tpop\trcx\t\t; restore rcx");
+            Writer.WriteLine("\tpop\trax\t\t; restore rax");
+            Writer.WriteLine("\tpop\trbp\t\t; avoid stack alignment issues");
+            Writer.WriteLine("\tret");
+            Writer.WriteLine();
+            Writer.WriteLine("main:");
+        }
+
+        private static void PrintTextSection()
+        {
+            foreach (var line in SymbolTable.TextSection)
+            {
+                Writer.WriteLine(line);
+            }
+        }
+
+        private static void PrintTermination()
+        {
+            Writer.WriteLine("exit:");
+            Writer.WriteLine("\tmov\trax, 60");
+            Writer.WriteLine("\txor\trdi\trdi");
+            Writer.WriteLine("\tsyscall");
         }
     }
 }

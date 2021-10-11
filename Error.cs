@@ -1,18 +1,21 @@
 using System.IO;
 
-public static class Error
+namespace compiler
 {
-    /// <summary>
-    /// Writes error message to /ProgramName/.err
-    /// Terminates the program
-    /// </summary>
-    /// <param name="errorMessage">Message to be displayed to user.</param> 
-    public static void ThrowError(string errorMessage)
+    public static class Error
     {
-        using (StreamWriter writer = new StreamWriter($"input/temp.err"))
+        /// <summary>
+        /// Writes error message to /ProgramName/.err
+        /// Terminates the program
+        /// </summary>
+        /// <param name="errorMessage">Message to be displayed to user.</param> 
+        public static void ThrowError(string errorMessage)
         {
-            writer.WriteLine($"Error: {errorMessage}");
+            using (StreamWriter writer = new StreamWriter($"output/{Program.ProgramName}.err"))
+            {
+                writer.WriteLine($"Error: {errorMessage}");
+            }
+            System.Environment.Exit(1);
         }
-        System.Environment.Exit(1);
     }
 }

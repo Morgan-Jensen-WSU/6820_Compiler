@@ -15,9 +15,15 @@ namespace compiler
 
         Regex ProgramName = new Regex(@"^program[a-zA-Z0-9]+");
         Regex DeclareNum = new Regex(@"^num[a-zA-Z0-9]+");
-        Regex AssignNum = new Regex(@"^[a-zA-Z0-9]+=[a-zA-Z0-9]+");
+        Regex Assigning = new Regex(@"^[a-zA-Z0-9]+=[a-zA-Z0-9]+");
         Regex NumConst = new Regex(@"^[0-9]+$");
-        Regex Addition = new Regex(@"^[a-zA-Z0-9]+\+");
+        Regex StringConst = new Regex("^\".+");
+        Regex Addition = new Regex(@"^[a-zA-Z0-9]+\+[a-zA-Z0-9]+");
+        Regex Subtraction = new Regex(@"^[a-zA-Z0-9]+\-[a-zA-Z0-9]+");
+        Regex Multiplication = new Regex(@"^[a-zA-Z0-9]+\*[a-zA-Z0-9]+");
+        Regex Division = new Regex(@"^[a-zA-Z0-9]+\/[a-zA-Z0-9]+");
+        Regex Exponent = new Regex(@"^[a-zA-Z0-9]+\^[a-zA-Z0-9]+");
+        Regex Writing = new Regex(@"^write[a-zA-Z0-9]+");
 
 
         public Parser(string inputFile)
@@ -59,7 +65,7 @@ namespace compiler
                 builder.Clear();
             }
 
-            
+
             foreach (var line in Lines)
             {
                 if (ProgramName.IsMatch(line))
@@ -69,48 +75,59 @@ namespace compiler
                 else if (DeclareNum.IsMatch(line))
                 {
                     string varName = line.Substring(3);
-                    if (MyTable.IsVariableNameUsed(varName))
-                    {
-                        Error.ThrowError("A variable already has that name.");
-                    }
-                    else 
-                    {
-                        if (!AssignNum.IsMatch(varName))    // num num1;
-                        {
-                            MyTable.DeclareVariable(varName);
-                            SymbolTable.BssSection.Add($"{varName}\tresq\t1\t; an int");
-                        }
-                        else
-                        {
-                            int equalsSign = 0;
-                            for (int i = 0; i < varName.Length; i++)
-                            {
-                                if (varName[i] == '=')
-                                {
-                                    equalsSign = i;
-                                }
-                            }
 
-                            string realVarName = varName.Substring(0, equalsSign);
-                            string assignValue = varName.Substring(equalsSign + 1);
-                            
-                            if (NumConst.IsMatch(assignValue))  // num num2 = 3;
-                            {
-                                MyTable.DeclareVariable(realVarName);
-                                MyTable.SetVariable(realVarName, assignValue);
-                                SymbolTable.DataSection.Add($"{realVarName}\tdd\t{assignValue}");
-                            }
-                            else
-                            {
-                                SymbolTable.BssSection.Add($"{realVarName}\tresq\t1\t; an int");
-                            }
-                            
-                        }
+                    if (!Assigning.IsMatch(varName))    // num num1;
+                    {
+                        MyTable.DeclareVariable(varName, VarType.NumVar);
+                        SymbolTable.BssSection.Add($"{varName}\tresq\t1\t; an int");
                     }
-                    
+                    else
+                    {
+                        Assign(varName);
+                    }
                 }
+                else if (Assigning.IsMatch(line)) // num2 = something
+                {
+                    Assign(line);
+                }
+                else if (Writing.IsMatch(line))
+                {
+                    string printValue = line.Substring(5);
 
-                Console.WriteLine(line);
+                    if (NumConst.IsMatch(printValue))
+                    {
+                        string asm;
+                        asm = $"\tmov\trax, {printValue}\n";
+                        asm += $"\tcall\tprintInt\n";
+                        SymbolTable.TextSection.Add(asm);
+                    }
+                    else if (StringConst.IsMatch(printValue))
+                    {
+                        for (int i = 0; i < printValue.Length; i++)
+                        {
+                            if (printValue[i] == '"')
+                            {
+                                printValue.Remove(i);
+                            }
+                        }
+                        MyTable.AddConstString(printValue);
+
+                        string asm;
+                        asm = $"\tmov\trax, [qword {printValue}]\n";
+                        asm += $"\tcall printString\n";
+                        SymbolTable.TextSection.Add(asm);
+                    }
+                    else
+                    {
+                        if (MyTable.IsVariableSet(printValue))
+                        {
+                            string asm;
+                            asm = $"\tmov\trax, [qword {printValue}]\n";
+                            asm += $"\tcall printInt\n";
+                            SymbolTable.TextSection.Add(asm);
+                        }
+                    }
+                }
             }
         }
 
@@ -148,6 +165,311 @@ namespace compiler
                         Input.RemoveRange(i, iter - i);
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Parses out a string into varaible assignment
+        /// </summary>
+        /// <param name="varValue">Value to be parsed through.</param>
+        private void Assign(string varValue)
+        {
+            int equalsSignIndex = 0;
+            for (int i = 0; i < varValue.Length; i++)
+            {
+                if (varValue[i] == '=')
+                {
+                    equalsSignIndex = i;
+                    break;
+                }
+            }
+
+            string realVarName = varValue.Substring(0, equalsSignIndex);
+            string assignValue = varValue.Substring(equalsSignIndex + 1);
+
+            if (NumConst.IsMatch(assignValue))  // num num2 = 3;
+            {
+                MyTable.DeclareVariable(realVarName, VarType.NumVar);
+                MyTable.SetVariable(realVarName);
+                SymbolTable.DataSection.Add($"{realVarName}\tdd\t{assignValue}");
+            }
+            else    // num num2 = some math
+            {
+                SymbolTable.BssSection.Add($"{realVarName}\tresq\t1\t; an int");
+                if (Addition.IsMatch(assignValue))  // num2 = x + y
+                {
+                    int operatorIndex = 0;
+                    for (int i = 0; i < assignValue.Length; i++)
+                    {
+                        if (assignValue[i] == '+')
+                        {
+                            operatorIndex = i;
+                            break;
+                        }
+                    }
+
+                    string value1 = assignValue.Substring(0, operatorIndex);
+                    string value2 = assignValue.Substring(operatorIndex + 1);
+
+                    VarType value1Type = MyTable.GetVarType(value1);
+                    VarType value2Type = MyTable.GetVarType(value2);
+
+                    string asm;
+
+                    if (value1Type == VarType.NumVar && value2Type == VarType.NumVar)   // num1 + num2
+                    {
+                        asm = $"\tmov\trax, [qword {value1}]\n";
+                        asm += $"\tadd\trax, [qword {value2}\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else if (value1Type == VarType.NumVar && value2Type == VarType.ConstNum) // num1 + 10
+                    {
+                        asm = $"\tmov\trax, [qword {value1}]\n";
+                        asm += $"\tadd\trax, {value2}\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else if (value1Type == VarType.ConstNum && value2Type == VarType.NumVar)    // 10 + num1
+                    {
+                        asm = $"\tmov\trax, [qword {value2}]\n";
+                        asm += $"\tadd\trax, {value1}\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else    // 10 + 5
+                    {
+                        asm = $"\tmov\trax, {value1}\n";
+                        asm += $"\tadd\trax, {value2}\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+
+                    SymbolTable.TextSection.Add(asm);
+                }
+                else if (Subtraction.IsMatch(assignValue))  // num2 = x - y
+                {
+                    int operatorIndex = 0;
+                    for (int i = 0; i < assignValue.Length; i++)
+                    {
+                        if (assignValue[i] == '-')
+                        {
+                            operatorIndex = i;
+                            break;
+                        }
+                    }
+
+                    string value1 = assignValue.Substring(0, operatorIndex);
+                    string value2 = assignValue.Substring(operatorIndex + 1);
+
+                    VarType value1Type = MyTable.GetVarType(value1);
+                    VarType value2Type = MyTable.GetVarType(value2);
+
+                    string asm;
+
+                    if (value1Type == VarType.NumVar && value2Type == VarType.NumVar)   // num1 - num2
+                    {
+                        asm = $"\tmov\trax, [qword {value1}]\n";
+                        asm += $"\tsub\trax, [qword {value2}\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else if (value1Type == VarType.NumVar && value2Type == VarType.ConstNum) // num1 - 10
+                    {
+                        asm = $"\tmov\trax, [qword {value1}]\n";
+                        asm += $"\tsub\trax, {value2}\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else if (value1Type == VarType.ConstNum && value2Type == VarType.NumVar)    // 10 - num1
+                    {
+                        asm = $"\tmov\trax, {value1}\n";
+                        asm += $"\tsub\trax, [qword {value2}]\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else    // 10 - 5
+                    {
+                        asm = $"\tmov\trax, {value1}\n";
+                        asm += $"\tsub\trax, {value2}\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+
+                    SymbolTable.TextSection.Add(asm);
+                }
+                else if (Multiplication.IsMatch(assignValue))   // num2 = x * y
+                {
+                    int operatorIndex = 0;
+                    for (int i = 0; i < assignValue.Length; i++)
+                    {
+                        if (assignValue[i] == '*')
+                        {
+                            operatorIndex = i;
+                            break;
+                        }
+                    }
+
+                    string value1 = assignValue.Substring(0, operatorIndex);
+                    string value2 = assignValue.Substring(operatorIndex + 1);
+
+                    VarType value1Type = MyTable.GetVarType(value1);
+                    VarType value2Type = MyTable.GetVarType(value2);
+
+                    string asm;
+
+                    if (value1Type == VarType.NumVar && value2Type == VarType.NumVar)   // num1 * num2
+                    {
+                        asm = $"\tmov\trax, [qword {value1}]\n";
+                        asm += $"\timul\trax, [qword {value2}\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else if (value1Type == VarType.NumVar && value2Type == VarType.ConstNum) // num1 * 10
+                    {
+                        asm = $"\tmov\trax, [qword {value1}]\n";
+                        asm += $"\timul\trax, {value2}\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else if (value1Type == VarType.ConstNum && value2Type == VarType.NumVar)    // 10 * num1
+                    {
+                        asm = $"\tmov\trax, [qword {value2}]\n";
+                        asm += $"\timul\trax, {value1}\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else    // 10 * 5
+                    {
+                        asm = $"\tmov\trax, {value1}\n";
+                        asm += $"\timul\trax, {value2}\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+
+                    SymbolTable.TextSection.Add(asm);
+                }
+                else if (Division.IsMatch(assignValue))     // num2 = x / y
+                {
+                    int operatorIndex = 0;
+                    for (int i = 0; i < assignValue.Length; i++)
+                    {
+                        if (assignValue[i] == '/')
+                        {
+                            operatorIndex = i;
+                            break;
+                        }
+                    }
+
+                    string value1 = assignValue.Substring(0, operatorIndex);
+                    string value2 = assignValue.Substring(operatorIndex + 1);
+
+                    VarType value1Type = MyTable.GetVarType(value1);
+                    VarType value2Type = MyTable.GetVarType(value2);
+
+                    string asm;
+
+                    if (value1Type == VarType.NumVar && value2Type == VarType.NumVar)   // num1 / num2
+                    {
+                        asm = $"\tmov\trax, [qword {value1}]\n";
+                        asm += $"\tmov\trbl, [qword {value2}\n";
+                        asm += $"\tidiv\trbl\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else if (value1Type == VarType.NumVar && value2Type == VarType.ConstNum) // num1 / 10
+                    {
+                        asm = $"\tmov\trax, [qword {value1}]\n";
+                        asm += $"\tmov\trbl, {value2}\n";
+                        asm += $"\tidiv\trbl\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else if (value1Type == VarType.ConstNum && value2Type == VarType.NumVar)    // 10 / num1
+                    {
+                        asm = $"\tmov\trax, {value1}\n";
+                        asm += $"\tmov\trbl, [qword {value2}]\n";
+                        asm += $"\tidiv\trbl\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+                    else    // 10 / 5
+                    {
+                        asm = $"\tmov\trax, {value1}\n";
+                        asm += $"\tmov\trbl, {value2}\n";
+                        asm += $"\tidiv\trbl\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
+                    }
+
+                    SymbolTable.TextSection.Add(asm);
+                }
+                else if (Exponent.IsMatch(assignValue)) // num2 = x ^ y
+                {
+                    int operatorIndex = 0;
+                    for (int i = 0; i < assignValue.Length; i++)
+                    {
+                        if (assignValue[i] == '^')
+                        {
+                            operatorIndex = i;
+                            break;
+                        }
+                    }
+
+                    string value1 = assignValue.Substring(0, operatorIndex);
+                    string value2 = assignValue.Substring(operatorIndex + 1);
+
+                    VarType value1Type = MyTable.GetVarType(value1);
+                    VarType value2Type = MyTable.GetVarType(value2);
+
+                    string asm;
+
+                    if (value1Type == VarType.NumVar && value2Type == VarType.NumVar)   // num1 ^ num2
+                    {
+                        asm =  "\txor\trdi, rdi\n";
+                        asm += "\tmov\trcx, 1\n";
+                        asm += $"\tmov\trax, [qword {value1}]\n";
+                        asm += $"\tmov\trdx, [qword {value2}]\n";
+                        asm += "exp_start:\n";
+                        asm += "\tcmp\trdi, rdx\n";
+                        asm += "\tjz exp_done\n";
+                        asm += $"\timul\trax, [qword {value1}]\n";
+                        asm += "\tinc\trdi\n";
+                        asm += "\tjmp\texp_start\n";
+                        asm += "exp_done:\n";
+                    }
+                    else if (value1Type == VarType.NumVar && value2Type == VarType.ConstNum) // num1 ^ 10
+                    {
+                        asm =  "\txor\trdi, rdi\n";
+                        asm += "\tmov\trcx, 1\n";
+                        asm += $"\tmov\trax, [qword {value1}]\n";
+                        asm += $"\tmov\trdx, {value2}\n";
+                        asm += "exp_start:\n";
+                        asm += "\tcmp\trdi, rdx\n";
+                        asm += "\tjz exp_done\n";
+                        asm += $"\timul\trax, [qword {value1}]\n";
+                        asm += "\tinc\trdi\n";
+                        asm += "\tjmp\texp_start\n";
+                        asm += "exp_done:\n";
+                    }
+                    else if (value1Type == VarType.ConstNum && value2Type == VarType.NumVar)    // 10 ^ num1
+                    {
+                        asm =  "\txor\trdi, rdi\n";
+                        asm += "\tmov\trcx, 1\n";
+                        asm += $"\tmov\trax, {value1}\n";
+                        asm += $"\tmov\trdx, [qword {value2}]\n";
+                        asm += "exp_start:\n";
+                        asm += "\tcmp\trdi, rdx\n";
+                        asm += "\tjz exp_done\n";
+                        asm += $"\timul\trax, {value1}\n";
+                        asm += "\tinc\trdi\n";
+                        asm += "\tjmp\texp_start\n";
+                        asm += "exp_done:\n";
+                    }
+                    else    // 10 ^ 5
+                    {
+                        asm =  "\txor\trdi, rdi\n";
+                        asm += "\tmov\trcx, 1\n";
+                        asm += $"\tmov\trax, {value1}\n";
+                        asm += $"\tmov\trdx, {value2}\n";
+                        asm += "exp_start:\n";
+                        asm += "\tcmp\trdi, rdx\n";
+                        asm += "\tjz exp_done\n";
+                        asm += $"\timul\trax, {value1}\n";
+                        asm += "\tinc\trdi\n";
+                        asm += "\tjmp\texp_start\n";
+                        asm += "exp_done:\n";
+                    }
+
+                    SymbolTable.TextSection.Add(asm);
+                }
+                
+                MyTable.DeclareVariable(realVarName, VarType.NumVar);
+                MyTable.SetVariable(realVarName);
             }
         }
     }
