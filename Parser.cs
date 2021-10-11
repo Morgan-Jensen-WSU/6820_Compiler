@@ -17,14 +17,15 @@ namespace compiler
         Regex DeclareNum = new Regex(@"^num[a-zA-Z0-9]+");
         Regex Assigning = new Regex(@"^[a-zA-Z0-9]+=[a-zA-Z0-9]+");
         Regex NumConst = new Regex(@"^[0-9]+$");
-        Regex StringConst = new Regex("^\".+");
+        Regex StringConst = new Regex("\".+");
         Regex Addition = new Regex(@"^[a-zA-Z0-9]+\+[a-zA-Z0-9]+");
         Regex Subtraction = new Regex(@"^[a-zA-Z0-9]+\-[a-zA-Z0-9]+");
         Regex Multiplication = new Regex(@"^[a-zA-Z0-9]+\*[a-zA-Z0-9]+");
         Regex Division = new Regex(@"^[a-zA-Z0-9]+\/[a-zA-Z0-9]+");
         Regex Exponent = new Regex(@"^[a-zA-Z0-9]+\^[a-zA-Z0-9]+");
-        Regex Writing = new Regex(@"^write[a-zA-Z0-9]+");
+        Regex Writing = new Regex(@"^write.");
 
+        private bool InString = false;
 
         public Parser(string inputFile)
         {
@@ -52,10 +53,21 @@ namespace compiler
                 // get 1 line without white space 
                 while (Input[iter] != ';' && Input[iter] != '\n' && iter <= Input.Count - 1)
                 {
+                    
                     if (Input[iter] != ' ' && Input[iter] != '\t' && Input[iter] != '\n')
                     {
                         builder.Append(Input[iter]);
                     }
+                    if (Input[iter] == '\"')
+                    {
+                        InString = !InString;
+                    }
+
+                    if (Input[iter] == ' ' && InString)
+                    {
+                        builder.Append(Input[iter]);
+                    }
+
                     iter++;
                     if (iter == Input.Count) break;
                 }
@@ -101,19 +113,12 @@ namespace compiler
                         asm += $"\tcall\tprintInt\n";
                         SymbolTable.TextSection.Add(asm);
                     }
-                    else if (StringConst.IsMatch(printValue))
+                    else if (line.Contains('\"'))
                     {
-                        for (int i = 0; i < printValue.Length; i++)
-                        {
-                            if (printValue[i] == '"')
-                            {
-                                printValue.Remove(i);
-                            }
-                        }
                         MyTable.AddConstString(printValue);
 
                         string asm;
-                        asm = $"\tmov\trax, [qword {printValue}]\n";
+                        asm = $"\tmov\trax, [qword {MyTable.GetConstStringName(printValue)}]\n";
                         asm += $"\tcall printString\n";
                         SymbolTable.TextSection.Add(asm);
                     }

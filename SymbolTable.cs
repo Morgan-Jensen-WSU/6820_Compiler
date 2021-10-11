@@ -67,8 +67,13 @@ namespace compiler
 
         public void AddConstString(string value)
         {
-            Variables.Add(new Variable($"S{ConstStringCount}", VarType.ConstString));
-            DataSection.Add($"S{ConstStringCount}\t\tdb\t\"{value}\", 0x0d, 0x0a, 0");
+            Variables.Add(new Variable($"S{ConstStringCount}", value));
+            DataSection.Add($"S{ConstStringCount}\t\tdb\t{value}, 0x0d, 0x0a, 0");
+        }
+
+        public string GetConstStringName(string value)
+        {
+            return Variables.FirstOrDefault(v => v.Value == value).Name;
         }
     }
 }

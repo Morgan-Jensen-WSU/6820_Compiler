@@ -1,0 +1,18 @@
+program test;     
+        begin
+        num thisIsATest = 100;
+        
+        num beans = 100 + thisIsATest;
+        write beans;
+               
+        num mulresult1=10 * beans;   // test more spaces
+        write mulresult1;     
+        num mulresult2 = 100 * beans;
+        write mulresult2;
+
+        num subresult = beans -10;  // test spaces
+        write subresult ;            // and more spaces
+        
+        write "please work" ; 
+        
+    end.
