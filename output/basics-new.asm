@@ -26,7 +26,7 @@ value3	dd	3
 ;-----------------------------
 ; uninitialized data
 ;-----------------------------
-seciton	.bss
+section	.bss
 
 addresult	resq	1	; an int
 mulresult	resq	1	; an int
@@ -37,7 +37,7 @@ expresult	resq	1	; an int
 ;-----------------------------
 ; Code
 ;-----------------------------
-seciton	.text
+section	.text
 
 printInt:
 	push	rbp		; Avoid stack alignment isses
@@ -108,5 +108,5 @@ exp_done:
 
 exit:
 	mov	rax, 60
-	xor	rdi	rdi
+	xor	rdi, rdi
 	syscall

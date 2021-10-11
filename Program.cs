@@ -103,7 +103,7 @@ namespace compiler
             Writer.WriteLine(";-----------------------------");
             Writer.WriteLine("; uninitialized data");
             Writer.WriteLine(";-----------------------------");
-            Writer.WriteLine("seciton\t.bss");
+            Writer.WriteLine("section\t.bss");
             Writer.WriteLine();
             foreach (var line in SymbolTable.BssSection)
             {
@@ -117,7 +117,7 @@ namespace compiler
             Writer.WriteLine(";-----------------------------");
             Writer.WriteLine("; Code");
             Writer.WriteLine(";-----------------------------");
-            Writer.WriteLine("seciton\t.text");
+            Writer.WriteLine("section\t.text");
             Writer.WriteLine();
             Writer.WriteLine("printInt:");
             Writer.WriteLine("\tpush\trbp\t\t; Avoid stack alignment isses");
@@ -164,7 +164,7 @@ namespace compiler
         {
             Writer.WriteLine("exit:");
             Writer.WriteLine("\tmov\trax, 60");
-            Writer.WriteLine("\txor\trdi\trdi");
+            Writer.WriteLine("\txor\trdi, rdi");
             Writer.WriteLine("\tsyscall");
         }
     }
