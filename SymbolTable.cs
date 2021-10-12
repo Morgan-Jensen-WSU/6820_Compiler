@@ -10,6 +10,7 @@ namespace compiler
         public static List<string> DataSection = new List<string>();
         public static List<string> BssSection = new List<string>();
         public static List<string> TextSection = new List<string>();
+        public static List<string> VarNames = new List<string>() { "num" };
 
         public int ConstStringCount;
 
@@ -40,6 +41,15 @@ namespace compiler
             {
                 Error.ThrowError("A variable already exists with that name");
             }
+
+            foreach (var varName in VarNames)
+            {
+                if (varName == name)
+                {
+                    Error.ThrowError("Variable cannot share a name with a type.");
+                }
+            }
+            
             Variables.Add(new Variable(name, type));
         }
 
