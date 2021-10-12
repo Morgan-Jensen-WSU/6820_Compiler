@@ -27,6 +27,9 @@ namespace compiler
 
         private bool InString = false;
 
+        /// <summary>
+        /// Reads the file into Input
+        /// </summary>
         public Parser(string inputFile)
         {
             MyTable = new SymbolTable();
@@ -43,6 +46,9 @@ namespace compiler
             FilterComments();
         }
 
+        /// <summary>
+        /// Parses through instructions and converts into x86
+        /// </summary>
         public void Parse()
         {
             int iter = 0; // pointer to current character
@@ -118,7 +124,7 @@ namespace compiler
                         MyTable.AddConstString(printValue);
 
                         string asm;
-                        asm = $"\tmov\trax, [qword {MyTable.GetConstStringName(printValue)}]\n";
+                        asm = $"\tmov\trax, {MyTable.GetConstStringName(printValue)}\n";
                         asm += $"\tcall printString\n";
                         SymbolTable.TextSection.Add(asm);
                     }

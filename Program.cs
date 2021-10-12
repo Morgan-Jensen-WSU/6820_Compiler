@@ -63,6 +63,9 @@ namespace compiler
             OutputFile = $"output/{ProgramName}.asm";
         }
 
+        /// <summary>
+        /// Starts the ASM file
+        /// </summary>
         private static void GetASMReady()
         {
             Writer.WriteLine(";-----------------------------");
@@ -79,6 +82,9 @@ namespace compiler
             Writer.WriteLine("\n");
         }
 
+        /// <summary>
+        /// Prints out the data section in nasm x86
+        /// </summary>
         private static void PrintDataSection()
         {
             Writer.WriteLine(";-----------------------------");
@@ -96,6 +102,9 @@ namespace compiler
             Writer.WriteLine("\n");
         }
 
+        /// <summary>
+        /// Prints out the bss section in nasm x86
+        /// </summary>
         private static void PrintBssSection()
         {
             Writer.WriteLine(";-----------------------------");
@@ -110,6 +119,9 @@ namespace compiler
             Writer.WriteLine("\n");
         }
 
+        /// <summary>
+        /// Prints out the mandatory stuff in .text
+        /// </summary>
         private static void StartTextSection()
         {
             Writer.WriteLine(";-----------------------------");
@@ -150,6 +162,9 @@ namespace compiler
             Writer.WriteLine("main:");
         }
 
+        /// <summary>
+        /// Prints out the instructions in .text
+        /// </summary>
         private static void PrintTextSection()
         {
             foreach (var line in SymbolTable.TextSection)
@@ -158,6 +173,9 @@ namespace compiler
             }
         }
 
+        /// <summary>
+        /// Prints end instructions
+        /// </summary>
         private static void PrintTermination()
         {
             Writer.WriteLine("exit:");
