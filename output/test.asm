@@ -99,7 +99,7 @@ main:
 	mov	rax, [qword subresult]
 	call printInt
 
-	mov	rax, [qword S0]
+	mov	rax, S0
 	call printString
 
 exit:
