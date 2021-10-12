@@ -415,8 +415,7 @@ namespace compiler
 
                     if (value1Type == VarType.NumVar && value2Type == VarType.NumVar)   // num1 ^ num2
                     {
-                        asm =  "\txor\trdi, rdi\n";
-                        asm += "\tmov\trcx, 1\n";
+                        asm =  "\tmov\trdi, 1\n";
                         asm += $"\tmov\trax, [qword {value1}]\n";
                         asm += $"\tmov\trdx, [qword {value2}]\n";
                         asm += "exp_start:\n";
@@ -426,11 +425,11 @@ namespace compiler
                         asm += "\tinc\trdi\n";
                         asm += "\tjmp\texp_start\n";
                         asm += "exp_done:\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
                     }
                     else if (value1Type == VarType.NumVar && value2Type == VarType.ConstNum) // num1 ^ 10
                     {
-                        asm =  "\txor\trdi, rdi\n";
-                        asm += "\tmov\trcx, 1\n";
+                        asm =  "\tmov\trdi, 1\n";
                         asm += $"\tmov\trax, [qword {value1}]\n";
                         asm += $"\tmov\trdx, {value2}\n";
                         asm += "exp_start:\n";
@@ -440,11 +439,11 @@ namespace compiler
                         asm += "\tinc\trdi\n";
                         asm += "\tjmp\texp_start\n";
                         asm += "exp_done:\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
                     }
                     else if (value1Type == VarType.ConstNum && value2Type == VarType.NumVar)    // 10 ^ num1
                     {
-                        asm =  "\txor\trdi, rdi\n";
-                        asm += "\tmov\trcx, 1\n";
+                        asm =  "\tmov\trdi, 1\n";
                         asm += $"\tmov\trax, {value1}\n";
                         asm += $"\tmov\trdx, [qword {value2}]\n";
                         asm += "exp_start:\n";
@@ -454,11 +453,11 @@ namespace compiler
                         asm += "\tinc\trdi\n";
                         asm += "\tjmp\texp_start\n";
                         asm += "exp_done:\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
                     }
                     else    // 10 ^ 5
                     {
-                        asm =  "\txor\trdi, rdi\n";
-                        asm += "\tmov\trcx, 1\n";
+                        asm =  "\tmov\trdi, 1\n";
                         asm += $"\tmov\trax, {value1}\n";
                         asm += $"\tmov\trdx, {value2}\n";
                         asm += "exp_start:\n";
@@ -468,6 +467,7 @@ namespace compiler
                         asm += "\tinc\trdi\n";
                         asm += "\tjmp\texp_start\n";
                         asm += "exp_done:\n";
+                        asm += $"\tmov\t[qword {realVarName}], rax\n";
                     }
 
                     SymbolTable.TextSection.Add(asm);

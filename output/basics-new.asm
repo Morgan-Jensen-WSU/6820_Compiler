@@ -91,8 +91,7 @@ main:
 	mov	rax, [qword subresult]
 	call printInt
 
-	xor	rdi, rdi
-	mov	rcx, 1
+	mov	rdi, 1
 	mov	rax, 10
 	mov	rdx, [qword value3]
 exp_start:
@@ -102,6 +101,7 @@ exp_start:
 	inc	rdi
 	jmp	exp_start
 exp_done:
+	mov	[qword expresult], rax
 
 	mov	rax, [qword expresult]
 	call printInt

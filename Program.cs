@@ -16,9 +16,7 @@ namespace compiler
         {
             if (args.Length == 0)
             {
-                Console.WriteLine("No params given");
-                // throw error
-                return;
+                Error.ThrowError("No parameters given.");
             }
 
             InputFile = args[0];
